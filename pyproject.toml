@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "robo-automation-test-kit"
+version = "1.0.0"
+description = "Complete automation testing starter kit with pytest plugin, HTML reports, charts, and parallel execution support"
+readme = "README.md"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Framework :: Pytest",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Testing",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+keywords = ["pytest", "reporting", "html", "charts", "visualization", "test-automation", "robo"]
+dependencies = [
+    "pytest>=7.0.0",
+    "jinja2>=3.0.0",
+    "pandas>=2.0.0",
+]
+requires-python = ">=3.8"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/robo-automation-test-kit"
+Documentation = "https://github.com/yourusername/robo-automation-test-kit#readme"
+Repository = "https://github.com/yourusername/robo-automation-test-kit"
+"Bug Tracker" = "https://github.com/yourusername/robo-automation-test-kit/issues"
+
+[project.entry-points.pytest11]
+robo-automation-test-kit = "robo_automation_test_kit.plugin"
+
+[tool.setuptools]
+packages = ["robo_automation_test_kit", "robo_automation_test_kit.utils", "robo_automation_test_kit.utils.reports"]
+
+[tool.setuptools.package-data]
+robo_automation_test_kit = ["templates/**/*", "utils/**/*"]

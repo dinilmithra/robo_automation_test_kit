@@ -1,0 +1,97 @@
+<!-- Distribution by Center Chart Component -->
+<div class="chart-container">
+    <canvas id="centerChart" width="360" height="288"></canvas>
+</div>
+<script>
+function initializeCenterChart() {
+    const ctx = document.getElementById('centerChart');
+    if (!ctx) {
+        setTimeout(initializeCenterChart, 100);
+        return;
+    }
+    
+    if (typeof window.centerPalette === 'undefined' || typeof window.add3DEffect === 'undefined' || typeof Chart === 'undefined') {
+        setTimeout(initializeCenterChart, 100);
+        return;
+    }
+    
+    const centerData = [
+        {% for result in report_rows %}
+        `{{ result.Center|e }}`{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    const centerCounts = {};
+    centerData.forEach(c => {
+        if (c && c !== '-') {
+            centerCounts[c] = (centerCounts[c] || 0) + 1;
+        }
+    });
+    const centerLabels = Object.keys(centerCounts);
+    const centerValues = centerLabels.map(c => centerCounts[c]);
+    
+    // Destroy existing chart instance if it exists
+    const existingChart = Chart.getChart('centerChart');
+    if (existingChart) {
+        existingChart.destroy();
+    }
+    
+    const ctxObj = ctx.getContext('2d');
+    const centerColors = window.centerPalette.slice(0, centerLabels.length);
+    const center3dDatasets = [{
+        data: centerValues,
+        backgroundColor: window.add3DEffect(ctxObj, 'doughnut', centerColors),
+        borderWidth: 1
+    }];
+    
+    new Chart(ctxObj, {
+        type: 'doughnut',
+        data: {
+            labels: centerLabels,
+            datasets: center3dDatasets
+        },
+        options: {
+            responsive: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Distribution by Center',
+                    font: { size: 16, weight: 'bold' },
+                    color: '#212121',
+                    padding: { top: 0, bottom: 12 }
+                },
+                legend: {
+                    display: true,
+                    position: 'right',
+                    align: 'center',
+                    labels: {
+                        font: { size: 14 },
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            return data.labels.map((label, i) => {
+                                return {
+                                    text: label,
+                                    fillStyle: centerColors[i],
+                                    strokeStyle: centerColors[i],
+                                    lineWidth: 1,
+                                    hidden: false,
+                                    index: i
+                                };
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+(function() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeCenterChart);
+    } else {
+        initializeCenterChart();
+    }
+})();
+</script>
