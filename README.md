@@ -1,5 +1,3 @@
-# robo_template
-
 ## Dynamic Pytest Log Level Control
 
 You can control the pytest log level dynamically using an environment variable when running tests from the command line.
