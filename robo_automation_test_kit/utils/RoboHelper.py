@@ -1,5 +1,6 @@
 # Report generation utilities and helpers
 import tomllib
+from typing import Any
 from .reports.HtmlReportUtils import get_html_template
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
@@ -79,7 +80,7 @@ def load_test_data(path: Path):
         return []
 
 
-def get_env(key: str, default: str = "") -> str:
+def get_env(key: str, default: Any = "") -> str:
     value = os.getenv(key, default).strip()
     return value if value else default
 

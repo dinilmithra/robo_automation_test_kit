@@ -3,7 +3,7 @@
 A comprehensive pytest plugin for test automation reporting with interactive HTML reports, chart visualizations, and support for parallel test execution.
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
+![License](https://img.shields.io/badge/License-Apache%202.0-green)
 ![PyPI](https://img.shields.io/badge/PyPI-robo--automation--test--kit-brightgreen)
 
 ## Features
@@ -358,7 +358,7 @@ poetry publish
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details
+Apache License 2.0 - see [LICENSE](LICENSE) file for details
 
 ## Contributing
 
