@@ -1,4 +1,5 @@
 # Report generation utilities and helpers
+import tomllib
 from .reports.HtmlReportUtils import get_html_template
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
@@ -246,7 +247,7 @@ def aggregate_test_results(config):
             elif isinstance(entry, list):
                 worker_results = [r for r in entry if isinstance(r, dict)]
                 report_rows.extend(worker_results)
-    
+
     return report_rows
 
 
@@ -344,7 +345,9 @@ def generate_report(report_rows, report_summary, start_time):
 
     # Load CSS and JS files for embedding
     try:
-        scripts_dir = Path(__file__).parent.parent / "templates" / "html_report" / "scripts"
+        scripts_dir = (
+            Path(__file__).parent.parent / "templates" / "html_report" / "scripts"
+        )
 
         # Read CSS files
         css_path = scripts_dir / "css" / "report.css"
@@ -367,9 +370,7 @@ def generate_report(report_rows, report_summary, start_time):
         # Read Chart.js library
         chart_js_path = scripts_dir / "js" / "chart.js"
         chart_js_content = (
-            chart_js_path.read_text(encoding="utf-8")
-            if chart_js_path.exists()
-            else ""
+            chart_js_path.read_text(encoding="utf-8") if chart_js_path.exists() else ""
         )
 
         # Read merged JS file
@@ -397,9 +398,9 @@ def generate_report(report_rows, report_summary, start_time):
 
     # Load template using get_html_template() which checks source first
     template = get_html_template()
-    
+
     # Register custom Jinja2 filter for duration formatting
-    template.globals['format_duration'] = format_duration
+    template.globals["format_duration"] = format_duration
 
     # Render and save report
     try:
@@ -418,3 +419,16 @@ def generate_report(report_rows, report_summary, start_time):
 
         traceback.print_exc()
         return None
+
+
+@staticmethod
+def get_version():
+    try:
+        # pyproject.toml lives at the repo root (two levels above package dir)
+        toml_path = Path(__file__).parents[2] / "pyproject.toml"
+        with open(toml_path, "rb") as f:
+            data = tomllib.load(f)
+            # Poetry-managed projects store version under [tool.poetry]
+            return data.get("tool", {}).get("poetry", {}).get("version", "0.0.0")
+    except Exception:
+        return "0.0.0"

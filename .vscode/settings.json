@@ -4,11 +4,21 @@
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    "python-envs.pythonProjects": [],
     "python.terminal.activateEnvironment": true,
     "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
-    "terminal.integrated.env.windows": {
-        "VIRTUAL_ENV": "${workspaceFolder}\\.venv",
-        "PATH": "${workspaceFolder}\\.venv\\Scripts;${env:PATH}"
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "python.terminal.executeInFileDir": true,
+    "python.analysis.useLibraryCodeForTypes": true,
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true
+    },
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true
+    },
+    "files.watcherExclude": {
+        "**/__pycache__/**": true,
+        "**/*.pyc": true
     }
 }
