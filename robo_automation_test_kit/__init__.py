@@ -3,6 +3,8 @@ Robo Reporter
 Comprehensive test reporting for Python projects with HTML reports and chart visualizations.
 """
 
-__version__ = "1.0.0"
+from robo_automation_test_kit.utils import RoboHelper
 
-from .plugin import *
+__version__ = RoboHelper.get_version()
+
+__all__ = ["RoboHelper"]

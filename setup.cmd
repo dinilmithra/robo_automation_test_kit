@@ -6,5 +6,3 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 python "%~dp0scripts\setup.py"
-
-pause
