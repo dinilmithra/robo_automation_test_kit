@@ -185,8 +185,56 @@
         const testName = row.getAttribute('data-test-name') || 'Unknown Test';
         const outcome = row.getAttribute('data-outcome') || 'Unknown';
         const error = row.getAttribute('data-error') || 'No error details available';
+        
         document.getElementById('errorModalTitle').textContent = `${testName} - ${outcome.toUpperCase()}`;
-        document.getElementById('errorMessage').textContent = error;
+        
+        // Format error message with highlighting (matching report_template.html format)
+        const errorElement = document.getElementById('errorMessage');
+        if (error && error.trim() !== '' && error !== 'No error details available') {
+            // Highlight error message lines (lines starting with E   followed by exception type)
+            // But do NOT highlight the Stacktrace marker or stacktrace content itself
+            let formattedMessage = error;
+            let stackPattern = /(E\s{1,3}Stacktrace:)/g;
+            let parts = [];
+            let lastIndex = 0;
+            let match;
+            
+            while ((match = stackPattern.exec(formattedMessage)) !== null) {
+                // Highlight error lines before the stacktrace marker
+                let part = formattedMessage.substring(lastIndex, match.index);
+                part = part.replace(
+                    /^(E\s{1,3})(.*?)(: |$)/gm,
+                    function(m, p1, p2, p3) {
+                        return p1 + '<span style="color: red; font-weight: bold;">' + p2 + '</span>' + p3;
+                    }
+                );
+                parts.push(part);
+                // Add the stacktrace marker itself (unhighlighted)
+                parts.push(match[1]);
+                // Add all following lines up to the next error block or end (unhighlighted)
+                let stackStart = match.index + match[1].length;
+                let nextErrorBlock = formattedMessage.indexOf('\nE ', stackStart);
+                if (nextErrorBlock === -1) nextErrorBlock = formattedMessage.length;
+                let stacktraceContent = formattedMessage.substring(stackStart, nextErrorBlock);
+                parts.push(stacktraceContent);
+                lastIndex = nextErrorBlock;
+                stackPattern.lastIndex = nextErrorBlock;
+            }
+            
+            // Process the remainder after the last stacktrace
+            let remainder = formattedMessage.substring(lastIndex);
+            remainder = remainder.replace(
+                /^(E\s{1,3})(.*?)(Message: |$)/gm,
+                function(m, p1, p2, p3) {
+                    return p1 + '<span style="color: red; font-weight: bold;">' + p2 + '</span>' + p3;
+                }
+            );
+            parts.push(remainder);
+            errorElement.innerHTML = parts.join('');
+        } else {
+            errorElement.innerHTML = '<em style="color: #666;">No detailed error information available for this test case.</em>';
+        }
+        
         document.getElementById('errorModal').style.display = 'block';
         document.getElementById('expandIcon').style.display = '';
         document.getElementById('minimizeIcon').style.display = 'none';
@@ -214,7 +262,10 @@
 
     window.onclick = function (event) {
         const modal = document.getElementById('errorModal');
-        if (event.target === modal) {
+        const modalContent = document.getElementById('errorModalContent');
+        
+        // Don't close if clicking on the modal content itself or if resizing
+        if (event.target === modal && !modalContent.classList.contains('resizing')) {
             window.closeErrorModal();
         }
     };
@@ -235,6 +286,37 @@
             row.addEventListener('click', function () {
                 showErrorDetails(row);
             });
+        });
+    }
+
+    // Prevent closing modal while resizing with CSS resize handle
+    const modalContent = document.getElementById('errorModalContent');
+    if (modalContent) {
+        // Track mouse down on the modal to detect resize attempts
+        let mouseDownX = 0;
+        let mouseDownY = 0;
+        let mouseDownWidth = 0;
+        let mouseDownHeight = 0;
+
+        modalContent.addEventListener('mousedown', function(e) {
+            mouseDownX = e.clientX;
+            mouseDownY = e.clientY;
+            mouseDownWidth = modalContent.offsetWidth;
+            mouseDownHeight = modalContent.offsetHeight;
+            modalContent.classList.add('resizing');
+        });
+
+        document.addEventListener('mouseup', function() {
+            // Check if dimensions changed (resize happened)
+            if (modalContent.offsetWidth !== mouseDownWidth || 
+                modalContent.offsetHeight !== mouseDownHeight) {
+                // Resize happened, keep modal open
+                setTimeout(() => {
+                    modalContent.classList.remove('resizing');
+                }, 100);
+            } else {
+                modalContent.classList.remove('resizing');
+            }
         });
     }
 </script>
