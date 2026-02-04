@@ -1,5 +1,5 @@
 """
-Robo Reporter
+Robo Automation
 Comprehensive test reporting for Python projects with HTML reports and chart visualizations.
 """
 

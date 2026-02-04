@@ -168,12 +168,13 @@ def build_test_data(item):
         Dictionary containing test result data:
         - test_status: PASSED, FAILED, or SKIPPED
         - test_id: Test name/nodeid
-        - error_log: Exception message if test failed
+        - error_log: Exception message if test failed (from report.longrepr)
         - duration: Total execution time in seconds (sum of all phases)
         - Any additional fields from custom_attributes dict
     """
 
-    # Get stored call phase exception info
+    # Get stored call phase report info (longrepr and excinfo)
+    call_longrepr = getattr(item, "_call_longrepr", None)
     call_excinfo = getattr(item, "_call_excinfo", None)
 
     # Determine test status and error log from call phase
@@ -181,18 +182,8 @@ def build_test_data(item):
         status = "PASSED"
         error_log = ""
     else:
-        # Safely extract error message
-        try:
-            error_repr = call_excinfo.getrepr()
-            error_log = (
-                error_repr.reprcrash.message
-                if error_repr.reprcrash
-                else str(call_excinfo.value)
-            )
-        except (AttributeError, Exception):
-            error_log = (
-                str(call_excinfo.value) if call_excinfo.value else "Unknown error"
-            )
+        # Use pytest's formatted longrepr for error log
+        error_log = call_longrepr if call_longrepr else ""
 
         # Determine status based on exception type
         if call_excinfo.typename == "Skipped":

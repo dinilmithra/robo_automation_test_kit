@@ -4,33 +4,33 @@ Collects test results and generates HTML reports with chart visualizations.
 
 PYTEST HOOK EXECUTION ORDER (Session Lifecycle):
 =====================================================
+Total Hooks Implemented: 16
 
 PHASE 1: SESSION INITIALIZATION
 1. pytest_addoption             - Register command-line options (called once per session)
 2. pytest_plugin_registered     - Plugin registration/lifecycle management
 3. pytest_configure             - Initialize plugin state and global config
-4. pytest_sessionstart          - Session initialization complete
+4. pytest_report_header         - Add custom header text to test report
+5. pytest_sessionstart          - Session initialization complete
 
 PHASE 2: TEST COLLECTION
-5. pytest_collection            - Parse test selections and optimize collection
-6. pytest_collection_modifyitems - Modify collected test items
-7. pytest_generate_tests        - Parametrize tests with CSV/Excel data (per test function)
-8. pytest_collection_finish     - Collection phase complete
+6. pytest_collection            - Parse test selections and optimize collection
+7. pytest_collection_modifyitems - Modify collected test items
+8. pytest_generate_tests        - Parametrize tests with CSV/Excel data (per test function)
+9. pytest_collection_finish     - Collection phase complete
 
-PHASE 3: TEST EXECUTION (per test)
-9. pytest_runtest_protocol      - Protocol for running individual tests
-   ├─ pytest_runtest_setup      - Setup phase before test
-   ├─ pytest_runtest_call       - Test execution phase
-   ├─ pytest_runtest_teardown   - Teardown phase after test
-   └─ pytest_runtest_makereport - Capture result after each phase
+PHASE 3: TEST EXECUTION (per test - repeated for each test)
+10. pytest_runtest_makereport   - Capture test result data (hookwrapper for each phase)
+11. pytest_runtest_logreport    - Process and log test reports (called after each phase)
 
 PHASE 4: XDIST WORKER COORDINATION (parallel execution only)
-10. pytest_configure_node       - Configure xdist worker nodes (workers only)
-11. pytest_testnodedown         - Aggregate worker results to master (master only)
+12. pytest_configure_node       - Configure xdist worker nodes (workers only)
+13. pytest_testnodedown         - Aggregate worker results to master (master only)
 
 PHASE 5: SESSION FINALIZATION
-12. pytest_sessionfinish        - Session finalization before report generation
-13. pytest_unconfigure          - Generate final HTML report (master only)
+14. pytest_sessionfinish        - Session finalization before report generation
+15. pytest_terminal_summary     - Add custom text to terminal summary
+16. pytest_unconfigure          - Generate final HTML report (master only)
 
 CUSTOM HOOKS (Robo Reporter Extensions):
 ========================================
@@ -151,9 +151,10 @@ def pytest_configure(config):
     Initialize robo-reporter plugin configuration.
 
     Responsibilities:
-    1. Store session start time for report duration calculation
-    2. Initialize test_results_summary list on config object
-    3. Store master config reference in global variable for xdist workers
+    1. Load environment variables from .env and environment-specific overrides
+    2. Store session start time for report duration calculation
+    3. Initialize test_results_summary list on config object
+    4. Store master config reference in global variable for xdist workers
 
     Config attributes created:
     - config.test_results_summary: List to collect test result dicts
@@ -166,6 +167,21 @@ def pytest_configure(config):
     - pytest's hook discovery can't find hookimpls in modules loaded before hookspec
       registration, so we use direct sys.modules lookup instead (more reliable)
     """
+    # Load base environment variables from .env file
+    load_dotenv()
+
+    # Load environment-specific variables based on APP_ENV value
+    app_env = os.getenv("APP_ENV", "").upper()
+    if app_env:
+        env_file = f".env.{app_env.lower()}"
+        if os.path.exists(env_file):
+            load_dotenv(env_file, override=True)
+            logger.info(f"Loaded environment-specific config from {env_file}")
+        else:
+            logger.warning(
+                f"Environment file {env_file} not found for APP_ENV={app_env}"
+            )
+
     # Discover and cache conftest module with hook implementation (optimization)
     global _CONFTEST_HOOK_MODULE
     if _CONFTEST_HOOK_MODULE is None:
@@ -173,7 +189,7 @@ def pytest_configure(config):
             if "conftest" in module_name and hasattr(module, "robo_modify_report_row"):
                 _CONFTEST_HOOK_MODULE = module
                 break
-    
+
     # Store session start time for HTML report duration calculation (master only)
     if not hasattr(config, "workerinput") and not hasattr(config, "_sessionstart_time"):
         config._sessionstart_time = datetime.now()
@@ -188,7 +204,84 @@ def pytest_configure(config):
 
 
 # ============================================================================
-# HOOK 4: pytest_sessionstart
+# HOOK 4: pytest_report_header
+# Execution: Early in session (after pytest_configure)
+# Purpose: Add custom header text to test report output
+# Runs on: Both master and worker processes
+# ============================================================================
+
+
+def pytest_report_header(config):
+    """
+    Add custom header information to pytest console output.
+
+    Called early in session initialization to display header text
+    at the top of the test report (before test execution).
+
+    Execution Sequence:
+    1. pytest_configure completes (plugin initialization)
+    2. pytest_report_header called (display header)
+    3. Collection phase starts
+    4. Tests execute
+
+    Process:
+    - Collect environment and configuration information
+    - Format header with plugin name, version, and settings
+    - Display to console before any test output
+    - Show parallel execution status
+
+    Returns:
+        String or list of strings to display in report header
+
+    Note:
+    - Called only in master process: skips if hasattr(config, 'workerinput')
+    - Opposite of pytest_terminal_summary (HOOK 15)
+    - Header appears at TOP of console output
+    - Terminal summary appears at BOTTOM of console output
+    """
+    # Only run in master process
+    if hasattr(config, "workerinput"):
+        return
+
+    # Get plugin version from package
+    try:
+        from . import __version__
+
+        version = __version__
+    except (ImportError, AttributeError):
+        version = "1.0.0"
+
+    # Get environment and configuration info
+    app_env = os.getenv("APP_ENV", "").upper() or "DEVELOPMENT"
+    project_name = os.getenv("PROJECT_NAME", "Robo Automation Test Kit")
+    test_framework = os.getenv("TEST_FRAMEWORK", "Robo Automation Framework")
+    parallel_execution = get_env("PARALLEL_EXECUTION", "Y")
+
+    # Format parallel execution status
+    if parallel_execution.upper() == "Y":
+        parallel_status = "Enabled (pytest-xdist)"
+    else:
+        parallel_status = "Disabled (Serial execution)"
+
+    # Build header lines
+    header_lines = [
+        "",
+        "=" * 80,
+        f"Robo Reporter v{version}",
+        "=" * 80,
+        f"Project:        {project_name}",
+        f"Framework:      {test_framework}",
+        f"Environment:    {app_env}",
+        f"Parallel Mode:  {parallel_status}",
+        "=" * 80,
+        "",
+    ]
+
+    return header_lines
+
+
+# ============================================================================
+# HOOK 5: pytest_sessionstart
 # Execution: After session object has been created and before collection starts
 # Purpose: Setup session-specific state before test collection
 # Runs on: Both master and worker processes
@@ -215,7 +308,7 @@ def pytest_sessionstart(session):
 
 
 # ============================================================================
-# HOOK 5: pytest_collection
+# HOOK 6: pytest_collection
 # Execution: At start of collection phase (after sessionstart)
 # Purpose: Optimize test collection by parsing command-line test selectors
 # Runs on: Both master and worker processes
@@ -272,7 +365,7 @@ def pytest_collection(session):
 
 
 # ============================================================================
-# HOOK 6: pytest_collection_modifyitems
+# HOOK 7: pytest_collection_modifyitems
 # Execution: After test collection, before parametrization of individual tests
 # Purpose: Modify collected test items (reorder, filter, mark, etc.)
 # Runs on: Both master and worker processes
@@ -303,7 +396,7 @@ def pytest_collection_modifyitems(session, config, items):
 
 
 # ============================================================================
-# HOOK 7: pytest_generate_tests
+# HOOK 8: pytest_generate_tests
 # Execution: For each test function during collection (after collection_modifyitems)
 # Purpose: Parametrize tests with CSV/Excel data rows
 # Runs on: Both master and worker processes
@@ -379,7 +472,7 @@ def pytest_generate_tests(metafunc):
 
 
 # ============================================================================
-# HOOK 8: pytest_collection_finish
+# HOOK 9: pytest_collection_finish
 # Execution: After all tests have been collected
 # Purpose: Final opportunity to modify or inspect collected tests
 # Runs on: Both master and worker processes
@@ -406,13 +499,14 @@ def pytest_collection_finish(session):
 
 
 # ============================================================================
-# HOOK 9: pytest_runtest_makereport
+# HOOK 10: pytest_runtest_makereport
 # Execution: For each test phase (setup, call, teardown) after phase completes
 # Purpose: Capture test results and metadata
 # Runs on: Both master and worker processes
 # ============================================================================
 
 
+@pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     """
     Capture individual test result data.
@@ -428,7 +522,7 @@ def pytest_runtest_makereport(item, call):
     - title: Test title from @pytest.mark.datafile row or docstring
     - Phase, Request Category, Request Sub Category, Center: From CSV data
     - duration: Execution time in seconds (sum of setup + call + teardown)
-    - error_log: Exception message if test failed
+    - error_log: Exception message if test failed (from report.longrepr)
 
     Data storage:
     - Appended to config.test_results_summary (master and workers)
@@ -442,8 +536,15 @@ def pytest_runtest_makereport(item, call):
     # Capture duration for this phase
     item._phase_durations[call.when] = getattr(call, "duration", 0)
 
-    # Store call phase info for later use
+    # Execute the actual makereport hook to generate the report
+    outcome = yield
+    report = outcome.get_result()
+
+    # Store call phase report info for later use
     if call.when == "call":
+        item._call_longrepr = (
+            str(report.longrepr) if report.longrepr else "No error details available"
+        )
         item._call_excinfo = call.excinfo
         item._call_when = call.when
 
@@ -474,7 +575,7 @@ def pytest_runtest_makereport(item, call):
         except Exception as e:
             logger.error(
                 f"Error calling robo_modify_report_row for test {item.nodeid}: {e}",
-                exc_info=True
+                exc_info=True,
             )
 
     # Store result in config (initialized for both main and worker processes)
@@ -488,7 +589,54 @@ def pytest_runtest_makereport(item, call):
 
 
 # ============================================================================
-# HOOK 10: pytest_configure_node (xdist only)
+# HOOK 11: pytest_runtest_logreport
+# Execution: After pytest_runtest_makereport creates report for each phase
+# Purpose: Process and log test reports (setup, call, teardown phases)
+# Runs on: Both master and worker processes
+# ============================================================================
+
+
+def pytest_runtest_logreport(report):
+    """
+    Process test reports after each phase report is created.
+
+    Called after pytest_runtest_makereport for each test phase (setup, call, teardown).
+    This hook receives the TestReport object generated by makereport and can be used
+    to process or log reports in real-time.
+
+    Execution order:
+    1. pytest_runtest_makereport creates TestReport for a phase
+    2. pytest_runtest_logreport receives and processes that report
+    3. Repeats for each phase (setup → call → teardown)
+
+    Args:
+        report: TestReport object containing:
+            - report.nodeid: Test node ID (e.g., "tests/test_file.py::test_name")
+            - report.when: Phase name ('setup', 'call', 'teardown')
+            - report.outcome: Test outcome ('passed', 'failed', 'skipped')
+            - report.longrepr: Long representation of failure/error (if any)
+            - report.duration: Phase execution time in seconds
+            - report.sections: List of captured output sections (stdout, stderr, log)
+
+    Use cases:
+    - Real-time test progress logging
+    - Phase-specific report processing
+    - Custom test result tracking
+    - Live test status updates
+
+    Note:
+    - Called for EVERY phase (setup, call, teardown) of EVERY test
+    - For final aggregated results, see pytest_runtest_makereport
+    - Main result collection happens in pytest_runtest_makereport after teardown
+    """
+    # This hook is available for custom report processing
+    # Currently, main result collection happens in pytest_runtest_makereport
+    # which aggregates all phases together after teardown completes
+    pass
+
+
+# ============================================================================
+# HOOK 12: pytest_configure_node (xdist only)
 # Execution: When xdist worker node is being configured
 # Purpose: Initialize worker-specific configuration
 # Runs on: Worker processes only (not on master)
@@ -518,7 +666,7 @@ def pytest_configure_node(node):
 
 
 # ============================================================================
-# HOOK 11: pytest_testnodedown (xdist only)
+# HOOK 13: pytest_testnodedown (xdist only)
 # Execution: When xdist worker process terminates
 # Purpose: Aggregate results from workers back to master process
 # Runs on: Master process only (for each completed worker)
@@ -577,8 +725,8 @@ def pytest_testnodedown(node, error):
 
 
 # ============================================================================
-# HOOK 12: pytest_sessionfinish
-# Execution: After all tests have finished, before pytest_unconfigure
+# HOOK 14: pytest_sessionfinish
+# Execution: After all tests have finished, before terminal summary
 # Purpose: Perform final cleanup and session-level operations
 # Runs on: Both master and worker processes
 # ============================================================================
@@ -612,8 +760,85 @@ def pytest_sessionfinish(session, exitstatus):
 
 
 # ============================================================================
-# HOOK 13: pytest_unconfigure
-# Execution: Last hook - after all teardown and xdist aggregation complete
+# HOOK 15: pytest_terminal_summary
+# Execution: After session finalization, before report generation
+# Purpose: Add custom text to terminal summary output
+# Runs on: Master process only (not in xdist workers)
+# ============================================================================
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    """
+    Add custom summary information to terminal output.
+
+    Called after all tests complete and before final report generation.
+    Displays test execution summary and report location to the console.
+
+    Execution Sequence:
+    1. All tests have finished executing
+    2. xdist workers have been aggregated (if parallel)
+    3. Terminal summary is being written to console
+    4. Before HTML report is generated (pytest_unconfigure)
+
+    Process:
+    - Collect final test results from config.test_results_summary
+    - Calculate summary statistics (passed, failed, skipped)
+    - Format and display summary to terminal
+    - Show report file path if available
+
+    Args:
+        terminalreporter: TerminalReporter object for writing to console
+        exitstatus: Exit status code (0: success, 1: failures, 2: interrupted, etc.)
+        config: Pytest config object
+
+    Note:
+    - Called only in master process: skips if hasattr(config, 'workerinput')
+    - Called after pytest_sessionfinish
+    - Before pytest_unconfigure (report generation)
+    - Terminal summary is displayed to user before report is generated
+    """
+    # Only run in master process
+    if hasattr(config, "workerinput"):
+        return
+
+    # Get test results from config
+    results = getattr(config, "test_results_summary", [])
+
+    if not results:
+        return
+
+    # Calculate summary statistics
+    total = len(results)
+    passed = sum(1 for r in results if r.get("test_status") == "PASSED")
+    failed = sum(1 for r in results if r.get("test_status") in ["ERROR", "FAILED"])
+    skipped = sum(1 for r in results if r.get("test_status") == "SKIPPED")
+
+    # Format summary section
+    terminalreporter.ensure_newline()
+    terminalreporter.section("Robo Reporter Summary", sep="=")
+
+    # Display statistics
+    summary_lines = [
+        f"Total Tests:  {total}",
+        f"Passed:       {passed}",
+        f"Failed:       {failed}",
+        f"Skipped:      {skipped}",
+    ]
+
+    for line in summary_lines:
+        terminalreporter.write_line(line)
+
+    # Calculate pass rate
+    if total > 0:
+        pass_rate = (passed / total) * 100
+        terminalreporter.write_line(f"Pass Rate:    {pass_rate:.1f}%")
+
+    terminalreporter.ensure_newline()
+
+
+# ============================================================================
+# HOOK 16: pytest_unconfigure
+# Execution: Last hook - after all teardown and terminal summary complete
 # Purpose: Generate final HTML report with all collected results
 # Runs on: Master process only (not in xdist workers)
 # ============================================================================
