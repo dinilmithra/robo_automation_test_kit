@@ -80,9 +80,12 @@ def load_test_data(path: Path):
         return []
 
 
-def get_env(key: str, default: Any = "") -> str:
-    value = os.getenv(key, default).strip()
-    return value if value else default
+def get_env(key: str, default: Any = "") -> Any:
+    value = os.getenv(key)
+    if value is not None:
+        value = value.strip()
+        return value if value else default
+    return default
 
 
 def extract_test_case_name_from_docstring(item, report):
