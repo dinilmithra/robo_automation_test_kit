@@ -37,7 +37,7 @@ def robo_modify_report_row(report_row, test_data):
 
 
 @pytest.hookspec
-def robo_html_content_ready(config, html_content, report_path, email_body):
+def robo_html_content_ready(config, html_content, report_path):
     """
     Hook specification for source projects to receive generated HTML report content.
 
@@ -53,14 +53,13 @@ def robo_html_content_ready(config, html_content, report_path, email_body):
         config: Pytest config object with access to options and settings
         html_content: Complete HTML content as string (ready for email/attachment)
         report_path: Absolute path to the saved HTML report file
-        email_body: Pre-rendered HTML email body content from email template
 
     Returns:
         None. This is a notification hook, return values are ignored.
 
     Example in source project's conftest.py:
         @pytest.hookimpl
-        def robo_html_content_ready(config, html_content, report_path, email_body):
+        def robo_html_content_ready(config, html_content, report_path):
             '''Send HTML report via email after generation.'''
             import smtplib
             from email.mime.text import MIMEText
@@ -72,7 +71,7 @@ def robo_html_content_ready(config, html_content, report_path, email_body):
             msg['To'] = 'team@example.com'
 
             # Attach email body as HTML
-            html_part = MIMEText(email_body, 'html')
+            html_part = MIMEText(html_content, 'html')
             msg.attach(html_part)
 
             # Send email

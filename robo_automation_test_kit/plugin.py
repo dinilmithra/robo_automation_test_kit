@@ -431,7 +431,7 @@ def pytest_generate_tests(metafunc):
     if "row" not in metafunc.fixturenames:
         return
 
-    csv_file = marker.args[0]
+    data_file = marker.args[0]
     test_nodeid = metafunc.definition.nodeid
     config = metafunc.config
 
@@ -454,19 +454,29 @@ def pytest_generate_tests(metafunc):
         logger.error(f"Cannot determine file path for test {test_nodeid}")
         return
 
-    # Load CSV data from data/ directory (sibling to test directory)
+    # Load CSV data from DATA_FILES_PATH (defaults to ./data at project root)
     test_dir = Path(test_file_path).parent
-    data_path = test_dir.parent / "data" / csv_file
+    data_root_value = get_env("DATA_FILES_PATH", "data")
+    if (
+        os.name == "nt"
+        and data_root_value.startswith(("/", "\\"))
+        and ":" not in data_root_value
+    ):
+        data_root_value = data_root_value.lstrip("/\\")
+    data_root = Path(data_root_value)
+    if not data_root.is_absolute():
+        data_root = test_dir.parent / data_root
+    data_path = data_root / data_file
 
     # Load test data from CSV/Excel file
     rows = load_test_data(data_path)
 
     if not rows:
         logger.error(
-            f"Failed to load data file '{csv_file}' at {data_path}; "
+            f"Failed to load data file '{data_file}' at {data_path}; "
             f"file may not exist, be empty, or have encoding issues"
         )
-        pytest.fail(f"Data file '{csv_file}' could not be loaded from {data_path}")
+        pytest.fail(f"Data file '{data_file}' could not be loaded from {data_path}")
 
     metafunc.parametrize("row", rows)
 
