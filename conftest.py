@@ -1,16 +1,14 @@
 """
 Simplified conftest.py - uses robo-reporter plugin for report generation
-All fixtures and hooks are provided by the robo_reporter plugin
+All fixtures, hooks, and environment setup are provided by the robo_reporter plugin
 """
 
 import pytest
-from dotenv import load_dotenv
 import logging
+from robo_automation_test_kit.utils import get_env
+from src.utils.CommonUtils import CommonUtils
 
 logger = logging.getLogger(__name__)
-
-# Load environment variables from .env file
-load_dotenv()
 
 
 # ============================================================================
@@ -56,6 +54,46 @@ def robo_modify_report_row(report_row, test_data):
     # "sprint": data_row.get("Sprint", ""),
 
     return report_row
+
+
+# ============================================================================
+# robo_html_report_ready Hook Implementation
+# ============================================================================
+# This hook is called after HTML report is generated and saved
+# Use this to send email, upload to cloud, or integrate with other systems
+
+
+@pytest.hookimpl
+def robo_html_content_ready(config, html_content, report_path, email_body):
+    """
+    Example implementation of robo_html_content_ready hook.
+
+    This hook is called after the HTML report is successfully generated.
+    Use this to send the report via email or integrate with other systems.
+
+    Args:
+        config: Pytest config object with access to options and settings
+        html_content: Complete HTML content as string (ready for email/attachment)
+        report_path: Absolute path to the saved HTML report file
+        email_body: Pre-rendered HTML email body content from email template
+    """
+    logger.info(f"HTML report ready at: {report_path}")
+    logger.info(f"Report generated successfully")
+
+    # Example: Send email with HTML report
+    # Uncomment and configure SMTP settings to enable email notifications
+
+    # from src.notifications.SendEmail import send_html_email
+    #
+    # subject = f"Test Report - {report_path}"
+    # recipients = ["team@example.com"]
+    #
+    # send_html_email(
+    #     subject=subject,
+    #     html_content=email_body,
+    #     recipients=recipients,
+    #     attachment_path=report_path
+    # )
 
 
 # ============================================================================
