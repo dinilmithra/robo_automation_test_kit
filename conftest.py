@@ -64,7 +64,7 @@ def robo_modify_report_row(report_row, test_data):
 
 
 @pytest.hookimpl
-def robo_html_content_ready(config, html_content, report_path, email_body):
+def robo_html_content_ready(config, html_content, report_path):
     """
     Example implementation of robo_html_content_ready hook.
 
@@ -75,7 +75,6 @@ def robo_html_content_ready(config, html_content, report_path, email_body):
         config: Pytest config object with access to options and settings
         html_content: Complete HTML content as string (ready for email/attachment)
         report_path: Absolute path to the saved HTML report file
-        email_body: Pre-rendered HTML email body content from email template
     """
     logger.info(f"HTML report ready at: {report_path}")
     logger.info(f"Report generated successfully")
@@ -90,7 +89,7 @@ def robo_html_content_ready(config, html_content, report_path, email_body):
     #
     # send_html_email(
     #     subject=subject,
-    #     html_content=email_body,
+    #     html_content=html_content,
     #     recipients=recipients,
     #     attachment_path=report_path
     # )

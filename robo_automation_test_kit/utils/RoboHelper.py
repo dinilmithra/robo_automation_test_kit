@@ -3,12 +3,10 @@ import tomllib
 from typing import Any
 from .reports.HtmlReportUtils import get_html_template
 from pathlib import Path
-from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
 import zipfile
 import os
 import logging
-import shutil
 
 
 logger = logging.getLogger(__name__)

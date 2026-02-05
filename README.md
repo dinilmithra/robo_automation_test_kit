@@ -149,6 +149,9 @@ $env:PARALLEL_EXECUTION="N"  # Disable parallel execution
 $env:PROJECT_NAME="My Project"
 $env:APP_ENV="staging"
 $env:TEST_FRAMEWORK="pytest"
+$env:REPORT_PATH="reports"  # Report output folder (relative to project root)
+$env:DATA_FILES_PATH="data"  # Data files base folder (relative to project root)
+$env:DATA_FILES_PATH="C:/path/to/data"  # Base folder containing env subfolders (e.g., uat, dev)
 
 # Run tests
 pytest
@@ -159,6 +162,9 @@ pytest
 export LOG_LEVEL=DEBUG
 export PARALLEL_EXECUTION=N
 export PROJECT_NAME="My Project"
+export REPORT_PATH="reports"  # Report output folder (relative to project root)
+export DATA_FILES_PATH="data"  # Data files base folder (relative to project root)
+export DATA_FILES_PATH="/path/to/data"  # Base folder containing env subfolders (e.g., uat, dev)
 
 pytest
 ```
@@ -180,6 +186,27 @@ pytest --log-cli-level=$LOG_LEVEL
 ```
 
 Valid log levels: `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`, `NOTSET`
+
+### Report Path Resolution
+
+`REPORT_PATH` accepts:
+- Relative paths (e.g., `reports`) resolved from the project root.
+- Absolute paths (e.g., `C:/reports` or `/var/reports`).
+
+On Windows, a leading-slash path like `/reports` is treated as project-root relative
+to avoid writing to the drive root (e.g., `C:\reports`).
+
+### Data Files Path Resolution
+
+`DATA_FILES_PATH` points to the base folder that contains your data files used by
+`@pytest.mark.datafile(...)`.
+
+Examples:
+- `data` → resolves to `<project_root>/data`
+- `C:/my-data` → uses an absolute path
+
+On Windows, a leading-slash path like `/data` is treated as project-root relative
+to avoid resolving to `C:\data`.
 
 ## Advanced Usage
 
