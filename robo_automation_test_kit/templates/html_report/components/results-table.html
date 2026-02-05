@@ -240,25 +240,11 @@
         document.getElementById('minimizeIcon').style.display = 'none';
     };
 
-    window.closeErrorModal = function () {
-        document.getElementById('errorModal').style.display = 'none';
-        document.getElementById('errorModalContent').classList.remove('fullscreen');
-        document.querySelectorAll('.results-table tr.selected').forEach(tr => tr.classList.remove('selected'));
-    };
+    // closeErrorModal is defined in report.js with full cleanup functionality
+    // DO NOT redefine it here as it will override the complete implementation
 
-    window.toggleFullscreen = function () {
-        const modalContent = document.getElementById('errorModalContent');
-        const expandIcon = document.getElementById('expandIcon');
-        const minimizeIcon = document.getElementById('minimizeIcon');
-        const isFullscreen = modalContent.classList.toggle('fullscreen');
-        if (isFullscreen) {
-            expandIcon.style.display = 'none';
-            minimizeIcon.style.display = '';
-        } else {
-            expandIcon.style.display = '';
-            minimizeIcon.style.display = 'none';
-        }
-    };
+    // toggleFullscreen is defined in report.js with full resize functionality
+    // DO NOT redefine it here as it will override the complete implementation
 
     window.onclick = function (event) {
         const modal = document.getElementById('errorModal');
@@ -289,34 +275,5 @@
         });
     }
 
-    // Prevent closing modal while resizing with CSS resize handle
-    const modalContent = document.getElementById('errorModalContent');
-    if (modalContent) {
-        // Track mouse down on the modal to detect resize attempts
-        let mouseDownX = 0;
-        let mouseDownY = 0;
-        let mouseDownWidth = 0;
-        let mouseDownHeight = 0;
-
-        modalContent.addEventListener('mousedown', function(e) {
-            mouseDownX = e.clientX;
-            mouseDownY = e.clientY;
-            mouseDownWidth = modalContent.offsetWidth;
-            mouseDownHeight = modalContent.offsetHeight;
-            modalContent.classList.add('resizing');
-        });
-
-        document.addEventListener('mouseup', function() {
-            // Check if dimensions changed (resize happened)
-            if (modalContent.offsetWidth !== mouseDownWidth || 
-                modalContent.offsetHeight !== mouseDownHeight) {
-                // Resize happened, keep modal open
-                setTimeout(() => {
-                    modalContent.classList.remove('resizing');
-                }, 100);
-            } else {
-                modalContent.classList.remove('resizing');
-            }
-        });
-    }
+    // Resize handling is managed by report.js - no need for duplicate listeners here
 </script>

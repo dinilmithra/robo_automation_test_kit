@@ -900,7 +900,25 @@ def pytest_unconfigure(config):
     report_summary = create_report_summary(report_rows, start_time)
 
     try:
-        generate_report(report_rows, report_summary, start_time)
+        result = generate_report(report_rows, report_summary, start_time)
+
+        # Call hook to notify source project that HTML report is ready
+        if result and _CONFTEST_HOOK_MODULE:
+            try:
+                hook_impl = getattr(
+                    _CONFTEST_HOOK_MODULE, "robo_html_content_ready", None
+                )
+                if hook_impl and callable(hook_impl):
+                    hook_impl(
+                        config=config,
+                        html_content=result["html_content"],
+                        report_path=result["report_path"],
+                    )
+            except Exception as hook_error:
+                logger.warning(
+                    f"Hook robo_html_content_ready failed: {hook_error}",
+                    exc_info=True,
+                )
     except Exception as e:
         logger.error(f"Failed to generate HTML report: {e}", exc_info=True)
 

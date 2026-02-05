@@ -327,7 +327,7 @@ def generate_report(report_rows, report_summary, start_time):
         start_time: Datetime object for test session start
 
     Returns:
-        Path to the generated HTML report
+        Dictionary with html_content and report_path
     """
 
     # Prepare template data with raw numeric durations
@@ -407,7 +407,10 @@ def generate_report(report_rows, report_summary, start_time):
             f.write(html_content)
 
         print(f"\nHTML report generated: {report_path.absolute()}", flush=True)
-        return str(report_path.absolute())
+        return {
+            "html_content": html_content,
+            "report_path": str(report_path.absolute()),
+        }
     except Exception as e:
         print(f"\nError generating HTML report: {e}", flush=True)
         import traceback

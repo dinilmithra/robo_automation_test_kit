@@ -72,7 +72,15 @@ def main():
         print("\nInstalling packages from requirements.txt...")
         try:
             subprocess.check_call(
-                [str(venv_python), "-m", "pip", "install", "-r", "requirements.txt"]
+                [
+                    str(venv_python),
+                    "-m",
+                    "pip",
+                    "install",
+                    "--upgrade",
+                    "-r",
+                    "requirements.txt",
+                ]
             )
         except subprocess.CalledProcessError:
             print("Error: Failed to install packages")
