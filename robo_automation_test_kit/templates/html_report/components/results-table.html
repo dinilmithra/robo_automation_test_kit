@@ -18,8 +18,9 @@
         {% endif %}
     </span>
     <input type="text" class="filter-input" id="resultsTableFilter" placeholder="Filter results...">
+    {% set case_label = 'test case' if summary.total == 1 else 'test cases' %}
     <span class="execution-details">
-        Executed <span class="execution-count">{{ summary.total }}</span> test cases in <span class="execution-count">{{
+        Executed <span class="execution-count">{{ summary.total }}</span> {{ case_label }} in <span class="execution-count">{{
             summary.duration }}</span> (HH:MM:SS)
     </span>
 </div>
