@@ -9,7 +9,7 @@ from .RoboHelper import (
     print_results_summary,
     flatten_results,
 )
-from .kill_stale_browsers import main as kill_stale_browsers
+from .kill_stale_browsers import kill_browser_instance as kill_stale_browsers
 
 __all__ = [
     "load_test_data",

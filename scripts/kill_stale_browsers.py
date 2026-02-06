@@ -2,12 +2,12 @@
 """Thin wrapper for the library kill-stale-browsers utility."""
 import sys
 
-from robo_automation_test_kit.utils.kill_stale_browsers import main
+from robo_automation_test_kit import kill_browser_instance
 
 
 if __name__ == "__main__":
     try:
-        sys.exit(main())
+        sys.exit(kill_browser_instance())
     except KeyboardInterrupt:
         print("\nAborted by user.")
         sys.exit(130)
