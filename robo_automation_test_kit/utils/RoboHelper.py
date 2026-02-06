@@ -1,13 +1,20 @@
 # Report generation utilities and helpers
-import tomllib
-from .reports.HtmlReportUtils import get_html_template
-from pathlib import Path
-from jinja2 import Environment, FileSystemLoader
-from datetime import datetime
-import zipfile
-import os
 import logging
-import shutil
+import os
+import sys
+import tomllib
+import traceback
+import zipfile
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+try:
+    import pandas as pd  # type: ignore
+except Exception:
+    pd = None
+
+from .reports.HtmlReportUtils import get_html_template
 
 
 logger = logging.getLogger(__name__)
@@ -37,17 +44,12 @@ def load_test_data(path: Path):
     Returns a list of dict rows suitable for pytest parametrization.
     """
 
-    # Print to stderr to ensure visibility in xdist mode
-    import sys
-
     # Validate file exists
     if not os.path.exists(path):
         logger.error(f"Data file not found: {path}")
         return []
 
-    try:
-        import pandas as pd
-    except ImportError:
+    if pd is None:
         logger.error("pandas not installed; cannot load data file")
         return []
 
@@ -79,9 +81,12 @@ def load_test_data(path: Path):
         return []
 
 
-def get_env(key: str, default: str = "") -> str:
-    value = os.getenv(key, default).strip()
-    return value if value else default
+def get_env(key: str, default: Any = "") -> Any:
+    value = os.getenv(key)
+    if value is not None:
+        value = value.strip()
+        return value if value else default
+    return default
 
 
 def extract_test_case_name_from_docstring(item, report):
@@ -164,12 +169,13 @@ def build_test_data(item):
         Dictionary containing test result data:
         - test_status: PASSED, FAILED, or SKIPPED
         - test_id: Test name/nodeid
-        - error_log: Exception message if test failed
+        - error_log: Exception message if test failed (from report.longrepr)
         - duration: Total execution time in seconds (sum of all phases)
         - Any additional fields from custom_attributes dict
     """
 
-    # Get stored call phase exception info
+    # Get stored call phase report info (longrepr and excinfo)
+    call_longrepr = getattr(item, "_call_longrepr", None)
     call_excinfo = getattr(item, "_call_excinfo", None)
 
     # Determine test status and error log from call phase
@@ -177,18 +183,8 @@ def build_test_data(item):
         status = "PASSED"
         error_log = ""
     else:
-        # Safely extract error message
-        try:
-            error_repr = call_excinfo.getrepr()
-            error_log = (
-                error_repr.reprcrash.message
-                if error_repr.reprcrash
-                else str(call_excinfo.value)
-            )
-        except (AttributeError, Exception):
-            error_log = (
-                str(call_excinfo.value) if call_excinfo.value else "Unknown error"
-            )
+        # Use pytest's formatted longrepr for error log
+        error_log = call_longrepr if call_longrepr else ""
 
         # Determine status based on exception type
         if call_excinfo.typename == "Skipped":
@@ -332,7 +328,7 @@ def generate_report(report_rows, report_summary, start_time):
         start_time: Datetime object for test session start
 
     Returns:
-        Path to the generated HTML report
+        Dictionary with html_content and report_path
     """
 
     # Prepare template data with raw numeric durations
@@ -412,11 +408,12 @@ def generate_report(report_rows, report_summary, start_time):
             f.write(html_content)
 
         print(f"\nHTML report generated: {report_path.absolute()}", flush=True)
-        return str(report_path.absolute())
+        return {
+            "html_content": html_content,
+            "report_path": str(report_path.absolute()),
+        }
     except Exception as e:
         print(f"\nError generating HTML report: {e}", flush=True)
-        import traceback
-
         traceback.print_exc()
         return None
 

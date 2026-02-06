@@ -229,6 +229,16 @@ window.showErrorDetails = function(row) {
     const error = row.getAttribute('data-error') || 'No error details available';
     document.getElementById('errorModalTitle').textContent = `${testName} - ${outcome.toUpperCase()}`;
     document.getElementById('errorMessage').textContent = error;
+    
+    // Reset modal to default state before showing
+    const modalContent = document.getElementById('errorModalContent');
+    modalContent.classList.remove('fullscreen');
+    modalContent.style.width = '';
+    modalContent.style.height = '';
+    modalContent.style.top = '';
+    modalContent.style.left = '';
+    modalContent.style.position = '';
+    
     document.getElementById('errorModal').style.display = 'block';
     document.getElementById('expandIcon').style.display = '';
     document.getElementById('minimizeIcon').style.display = 'none';
@@ -236,23 +246,42 @@ window.showErrorDetails = function(row) {
 
 window.closeErrorModal = function() {
     document.getElementById('errorModal').style.display = 'none';
-    document.getElementById('errorModalContent').classList.remove('fullscreen');
+    const modalContent = document.getElementById('errorModalContent');
+    modalContent.classList.remove('fullscreen');
+    
+    // Reset inline styles
+    modalContent.style.width = '';
+    modalContent.style.height = '';
+    modalContent.style.top = '';
+    modalContent.style.left = '';
+    modalContent.style.position = '';
+    
     document.querySelectorAll('.results-table tr.selected').forEach(tr => tr.classList.remove('selected'));
 };
 
 window.toggleFullscreen = function() {
     const modalContent = document.getElementById('errorModalContent');
+    
     const expandIcon = document.getElementById('expandIcon');
     const minimizeIcon = document.getElementById('minimizeIcon');
+    
     const isFullscreen = modalContent.classList.toggle('fullscreen');
+    
     if (isFullscreen) {
         expandIcon.style.display = 'none';
         minimizeIcon.style.display = '';
     } else {
         expandIcon.style.display = '';
         minimizeIcon.style.display = 'none';
+        // Reset to auto sizing when exiting fullscreen
+        modalContent.style.width = '';
+        modalContent.style.height = '';
+        modalContent.style.top = '';
+        modalContent.style.left = '';
     }
 };
+
+
 
 window.onclick = function(event) {
     const modal = document.getElementById('errorModal');
