@@ -1,12 +1,20 @@
 # Report generation utilities and helpers
-import tomllib
-from typing import Any
-from .reports.HtmlReportUtils import get_html_template
-from pathlib import Path
-from datetime import datetime
-import zipfile
-import os
 import logging
+import os
+import sys
+import tomllib
+import traceback
+import zipfile
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+try:
+    import pandas as pd  # type: ignore
+except Exception:
+    pd = None
+
+from .reports.HtmlReportUtils import get_html_template
 
 
 logger = logging.getLogger(__name__)
@@ -36,17 +44,12 @@ def load_test_data(path: Path):
     Returns a list of dict rows suitable for pytest parametrization.
     """
 
-    # Print to stderr to ensure visibility in xdist mode
-    import sys
-
     # Validate file exists
     if not os.path.exists(path):
         logger.error(f"Data file not found: {path}")
         return []
 
-    try:
-        import pandas as pd
-    except ImportError:
+    if pd is None:
         logger.error("pandas not installed; cannot load data file")
         return []
 
@@ -411,8 +414,6 @@ def generate_report(report_rows, report_summary, start_time):
         }
     except Exception as e:
         print(f"\nError generating HTML report: {e}", flush=True)
-        import traceback
-
         traceback.print_exc()
         return None
 

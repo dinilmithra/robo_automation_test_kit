@@ -1,9 +1,15 @@
+import os
+import re
+from datetime import datetime
+from pathlib import Path
+
+from jinja2 import Environment, FileSystemLoader
+
+
 def get_report_data(start_time):
     """
     Build the report_data dictionary for report generation, using config and environment variables.
     """
-    import os
-    from datetime import datetime
 
     project_root = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "..", "..", "..")
@@ -19,42 +25,31 @@ def get_report_data(start_time):
     }
 
 
-import os
-
-
 def get_html_template():
     """
     Returns the Jinja2 template object for the HTML report.
     Checks for source template in project working directory first, then falls back to package template.
     """
-    import os
-    from jinja2 import Environment, FileSystemLoader
-    from pathlib import Path
-
     # Check for source template in current working directory only
     source_template_dir = Path.cwd() / "templates" / "html_report"
     source_template_file = source_template_dir / "html_template.html"
-    
+
     if source_template_file.exists():
         # print(f"Loading source template from: {source_template_dir}", flush=True)
         env = Environment(loader=FileSystemLoader(str(source_template_dir)))
         return env.get_template("html_template.html")
-    
+
     # Fall back to package template inside robo_automation_test_kit directory
-    package_root = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..")
-    )
+    package_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     package_template_dir = os.path.join(package_root, "templates", "html_report")
     env = Environment(loader=FileSystemLoader(package_template_dir))
     return env.get_template("html_template.html")
-
 
 
 def get_report_summary(all_results, report_data):
     """
     Create the summary object for the report, including environment, project, test framework, total, and duration.
     """
-    from datetime import datetime
     start_time = report_data.get("start_time", None)
     end_time = report_data.get("end_time", None)
     if start_time is not None and end_time is not None:
@@ -84,8 +79,8 @@ def get_report_summary(all_results, report_data):
         "failed": status_counts["FAILED"],
         "skipped": status_counts["SKIPPED"],
         "rerun": status_counts["RERUN"],
-        "generated_date": datetime.now().strftime('%m-%d-%Y'),
-        "generated_time": datetime.now().strftime('%I:%M:%S %p'),
+        "generated_date": datetime.now().strftime("%m-%d-%Y"),
+        "generated_time": datetime.now().strftime("%I:%M:%S %p"),
     }
 
 
@@ -109,9 +104,6 @@ def generate_and_save_html_report(all_results, start_time):
     os.makedirs(report_dir, exist_ok=True)
 
     # Sanitize report_title for filename (remove/replace problematic characters)
-    import re
-    from datetime import datetime
-
     safe_title = re.sub(r"[^a-zA-Z0-9_-]", "_", report_title)
     now_str = datetime.now().strftime("_%Y%m%d_%H%M%S")
     html_report_path = os.path.join(report_dir, f"{safe_title}{now_str}.html")
@@ -128,11 +120,10 @@ def generate_html_report(all_results, output_path, report_data=None):
     if report_data is None:
         report_data = {}
     report_title = os.getenv("REPORT_TITLE", "Test Report")
-    from datetime import datetime
     summary = get_report_summary(all_results, report_data)
 
     template = get_html_template()
-    
+
     # Create format_duration function and register it with template
     def format_duration_func(seconds):
         if isinstance(seconds, (float, int)):
@@ -141,8 +132,8 @@ def generate_html_report(all_results, output_path, report_data=None):
             secs = int(seconds % 60)
             return f"{hours:02}:{minutes:02}:{secs:02}"
         return str(seconds)
-    
-    template.globals['format_duration'] = format_duration_func
+
+    template.globals["format_duration"] = format_duration_func
 
     html_content = template.render(
         report_title=report_title,
