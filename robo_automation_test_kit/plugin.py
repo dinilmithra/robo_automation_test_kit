@@ -61,6 +61,11 @@ from .utils.RoboHelper import (
 )
 from .utils import get_env, load_test_data
 
+try:
+    from . import __version__ as package_version
+except Exception:
+    package_version = "1.0.0"
+
 
 logger = logging.getLogger(__name__)
 logger.propagate = True
@@ -244,12 +249,7 @@ def pytest_report_header(config):
         return
 
     # Get plugin version from package
-    try:
-        from . import __version__
-
-        version = __version__
-    except (ImportError, AttributeError):
-        version = "1.0.0"
+    version = package_version
 
     # Get environment and configuration info
     app_env = os.getenv("APP_ENV", "").upper() or "DEVELOPMENT"
@@ -1051,6 +1051,7 @@ def driver(request):
     chrome_options.add_argument(f"--user-data-dir={profile_dir}")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--robo-automation")
 
     # Check HEADLESS environment variable (Y = headless, N = visible)
     headless = get_env("HEADLESS", "N")

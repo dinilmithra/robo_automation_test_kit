@@ -51,6 +51,9 @@ psutil = ">=5.9.0"
 [tool.poetry.plugins."pytest11"]
 robo-automation-test-kit = "robo_automation_test_kit.plugin"
 
+[tool.poetry.scripts]
+kill-stale-browsers = "robo_automation_test_kit.utils.kill_stale_browsers:main"
+
 [tool.poetry.urls]
 Homepage = "https://github.com/yourusername/robo-automation-test-kit"
 Documentation = "https://github.com/yourusername/robo-automation-test-kit#readme"
